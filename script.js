@@ -1,67 +1,59 @@
-const form = document.querySelector(".contact-form");
-
-function buildTelegramUrl(name, topic, contact) {
-  const base = "https://t.me/k1ttyklaw";
-  const text = `Здравствуйте! Хочу записаться на занятие.%0AИмя: ${name}%0AЗапрос: ${topic}%0AКонтакт: ${contact}%0AУдобное время: `;
-  return `${base}?text=${text}`;
-}
-
-form?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const name = form.querySelector("#name")?.value.trim() || "—";
-  const topic = form.querySelector("#topic")?.value.trim() || "—";
-  const contact = form.querySelector("#contact")?.value.trim() || "—";
-  const url = buildTelegramUrl(encodeURIComponent(name), encodeURIComponent(topic), encodeURIComponent(contact));
-  window.open(url, "_blank", "noopener");
-});
-
-// --- Tick-glow on .dot & .icon ---
-[...document.querySelectorAll('.dot,.icon')].forEach((el,i)=>{
-  el.animate([
-    {filter:'drop-shadow(0 0 6px #eceffc99)',opacity:0.82},
-    {filter:'drop-shadow(0 0 20px #6167dc66)',opacity:1},
-    {filter:'drop-shadow(0 0 4px #eceffc77)',opacity:0.88}
-  ],{
-    duration:3400+Math.random()*2400,
-    delay:Math.random()*1000,
-    iterations:Infinity
+// Обработка внешних ссылок
+document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+  link.addEventListener("click", (e) => {
+    // Дополнительная безопасность для внешних ссылок
+    if (!link.hasAttribute("rel")) {
+      link.setAttribute("rel", "noopener noreferrer");
+    }
   });
 });
-// Fade-in animation on scroll with staggered spring (disabled on touch / reduce-motion)
-const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+// Оптимизированная анимация появления секций
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const sections = [...document.querySelectorAll(".section")];
 
-if (isTouch || prefersReducedMotion) {
-  sections.forEach((section) => {
-    section.classList.add("visible");
-    section.style.transition = "none";
-    section.style.transform = "none";
-  });
-} else {
+if (!prefersReducedMotion) {
   const observerOptions = {
     threshold: 0.1,
     rootMargin: "0px 0px -50px 0px"
   };
+
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting && !entry.target.classList.contains('visible')) {
-        setTimeout(() => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        requestAnimationFrame(() => {
           entry.target.classList.add("visible");
-        }, i * 110 + Math.random()*60); // stagger with a little random
+        });
+        observer.unobserve(entry.target);
       }
     });
   }, observerOptions);
-  sections.forEach((section, i) => {
-    observer.observe(section);
-    section.style.transitionDelay = `${i*110+Math.random()*60}ms`;
+
+  const sections = document.querySelectorAll(".section, .card, .mini-card, .stat-card, .task-card");
+  sections.forEach((section) => observer.observe(section));
+} else {
+  // Для пользователей с prefers-reduced-motion просто показываем всё сразу
+  const sections = document.querySelectorAll(".section, .card, .mini-card, .stat-card, .task-card");
+  sections.forEach((section) => section.classList.add("visible"));
+}
+
+// Плавная прокрутка к якорям
+document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+  anchor.addEventListener("click", function (e) {
+    const href = this.getAttribute("href");
+    if (!href || href === "#") return;
+    
+    const target = document.querySelector(href);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+      
+      // Обновляем URL без перезагрузки страницы
+      if (history.pushState) {
+        history.pushState(null, null, href);
+      }
+    }
   });
-}
-
-// Show hero immediately
-const hero = document.querySelector(".hero");
-if (hero) {
-  hero.style.opacity = "1";
-  hero.style.transform = "translateY(0) scale(1.02)";
-}
-
+});
